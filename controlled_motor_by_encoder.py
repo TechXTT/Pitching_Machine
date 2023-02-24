@@ -38,7 +38,22 @@ try:
             else:
                 val = val - step_size
             print(val)
-            p.ChangeDutyCycle(val)
+            if val > 100:
+                val = 100
+            if val > 0:
+                GPIO.output(in1, GPIO.HIGH)
+                GPIO.output(in2, GPIO.LOW)
+                print("forward")
+                p.ChangeDutyCycle(val)
+            elif val < 0:
+                GPIO.output(in1, GPIO.LOW)
+                GPIO.output(in2, GPIO.HIGH)
+                print("backward")
+                p.ChangeDutyCycle(-val)
+            else:
+                GPIO.output(in1, GPIO.LOW)
+                GPIO.output(in2, GPIO.LOW)
+                print("stop")
         clkLastState = clkState
         sleep(0.01)
 finally:
