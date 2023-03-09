@@ -2,3 +2,4 @@ htr test
 ht test
 [TEST]
 TechXTT/Pitching_Machine
+TechXTT/Pitching_Machine
