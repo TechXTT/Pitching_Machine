@@ -1,6 +1,3 @@
-P6 - ENA 
-P5 - IN1 
-P4 - IN2
 P2 - DT 
 P1 - CLK
 Encoder + - 3.3V
