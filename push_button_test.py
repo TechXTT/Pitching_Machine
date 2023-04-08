@@ -54,8 +54,8 @@ try:
                 val_1 = 0
             if val_1 < 0:
                 val_1 = 0
-                
-            time.sleep(0.01)
+            print('Motors: ' + str(val_1))
+            time.sleep(1)
 
 finally:
     GPIO.cleanup()
