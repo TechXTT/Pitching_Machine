@@ -9,7 +9,7 @@ button = 27
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(encoder_clk_1, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(encoder_data_1, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 # Define a custom exception to raise if a fault is detected.
 class DriverFault(Exception):
@@ -34,35 +34,40 @@ try:
     while not button_pressed:
         clkState_1 = GPIO.input(encoder_clk_1)
         dtState_1 = GPIO.input(encoder_data_1)
+
         if clkState_1 != clkLastState_1:
             if dtState_1 != clkState_1:
                 val_1 = val_1 + step_size
             else:
                 val_1 = val_1 - step_size
-            print('Motor 1: ' + str(val_1))
+
+            print('Motors: ' + str(val_1))
+
             if val_1 >= MAX_SPEED:
                 val_1 = MAX_SPEED
             if val_1 <= 0:
                 val_1 = 0
+
             motors.setSpeeds(-val_1, val_1)
             raiseIfFault()
             time.sleep(0.002)
-        clkLastState_1 = clkState_1
 
-        if GPIO.input(button) == GPIO.LOW:
-            button_pressed = True
-            print('Button pressed')
+        clkLastState_1 = clkState_1
+        button_pressed = not GPIO.input(button)
 
         time.sleep(0.01)
+
     else:
         # Stop the motors slowly.
         while val_1 > 0 or val_1 > 0:
             val_1 = val_1 - step_size
             val_1 = val_1 - step_size
+
             if val_1 < 0:
                 val_1 = 0
             if val_1 < 0:
                 val_1 = 0
+                
             motors.setSpeeds(-val_1, val_1)
             raiseIfFault()
             time.sleep(0.01)
