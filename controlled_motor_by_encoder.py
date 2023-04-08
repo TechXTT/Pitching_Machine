@@ -9,7 +9,7 @@ button = 27
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(encoder_clk_1, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(encoder_data_1, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 # Define a custom exception to raise if a fault is detected.
 class DriverFault(Exception):
