@@ -41,9 +41,30 @@ button_pressed = False
 
 motors.setSpeeds(-val_1, val_2)
 
-@app.route('/')
+@app.route('/get')
 def index():
-    return f"Motor1: {-val_1}<br>Motor2: {val_2}"
+    # return json data
+    return {'val_1': val_1, 'val_2': val_2}
+
+@app.route('/set/<int:val_1>/<int:val_2>')
+def set(val_1, val_2):
+    motors.setSpeeds(-val_1, val_2)
+    return {'val_1': val_1, 'val_2': val_2}
+
+@app.route('/stop')
+def stop():
+    while val_1 > 0 or val_2 > 0:
+        val_1 = val_1 - step_size
+        val_2 = val_2 - step_size
+        if val_1 < 0:
+            val_1 = 0
+        if val_2 < 0:
+            val_2 = 0
+
+        motors.setSpeeds(-val_1, val_2)
+        time.sleep(0.3)
+
+    return {'val_1': val_1, 'val_2': val_2}
 
 def run_motors():
     global val_1, val_2, clkLastState_1, clkLastState_2, button_pressed
