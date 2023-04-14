@@ -1,6 +1,9 @@
 import time
 from dual_g2_hpmd_rpi import motors, MAX_SPEED
 from RPi import GPIO
+from flask import Flask
+
+app = Flask(__name__)
 
 encoder_clk_1 = 17
 encoder_data_1 = 18
@@ -29,6 +32,10 @@ def raiseIfFault():
 val_1 = MAX_SPEED / 4 # start at 25% speed
 val_2 = MAX_SPEED / 4 # start at 25% speed
 
+global speed_1, speed_2
+speed_1 = -val_1
+speed_2 = val_2
+
 step_size = MAX_SPEED / 30 # 16 speed per step
 
 clkLastState_1 = GPIO.input(encoder_clk_1)
@@ -36,6 +43,10 @@ clkLastState_2 = GPIO.input(encoder_clk_2)
 button_pressed = False
 
 motors.setSpeeds(-val_1, val_2)
+
+@app.route('/')
+def index():
+    return f"Motor1: {speed_1}<br>Motor2: {speed_2}"
 
 try:
     while True:
@@ -51,12 +62,13 @@ try:
             else:
                 val_1 = val_1 - step_size
 
-            print('Motor1: ' + str(val_1))
-
             if val_1 >= MAX_SPEED:
                 val_1 = MAX_SPEED
             if val_1 <= 0:
                 val_1 = 0
+
+            global speed_1
+            speed_1 = -val_1
 
             motors.motor1.setSpeed(-val_1)
             raiseIfFault()
@@ -68,12 +80,13 @@ try:
             else:
                 val_2 = val_2 - step_size
 
-            print('Motor2: ' + str(val_2))
-
             if val_2 >= MAX_SPEED:
                 val_2 = MAX_SPEED
             if val_2 <= 0:
                 val_2 = 0
+
+            global speed_2
+            speed_2 = val_2
 
             motors.motor2.setSpeed(val_2)
             raiseIfFault()
@@ -93,8 +106,11 @@ try:
                     val_1 = 0
                 if val_2 < 0:
                     val_2 = 0
-                print('Motor1: ' + str(val_1))
-                print('Motor2: ' + str(val_2))
+                
+                global speed_1, speed_2
+                speed_1 = -val_1
+                speed_2 = val_2    
+                
                 motors.setSpeeds(-val_1, val_2)
                 time.sleep(0.3)
 
