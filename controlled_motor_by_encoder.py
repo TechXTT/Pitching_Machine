@@ -46,13 +46,17 @@ def index():
     # return json data
     return {'val_1': val_1, 'val_2': val_2}
 
-@app.route('/set/<int:val_1>/<int:val_2>')
-def set(val_1, val_2):
+@app.route('/set/<int:new_1>/<int:new_2>')
+def set(new_1, new_2):
+    global val_1, val_2
+    val_1 = new_1
+    val_2 = new_2
     motors.setSpeeds(-val_1, val_2)
     return {'val_1': val_1, 'val_2': val_2}
 
 @app.route('/stop')
 def stop():
+    global val_1, val_2
     while val_1 > 0 or val_2 > 0:
         val_1 = val_1 - step_size
         val_2 = val_2 - step_size
