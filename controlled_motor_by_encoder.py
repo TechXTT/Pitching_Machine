@@ -3,8 +3,10 @@ import threading
 from dual_g2_hpmd_rpi import motors, MAX_SPEED
 from RPi import GPIO
 from flask import Flask
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 encoder_clk_1 = 17
 encoder_data_1 = 18
@@ -33,7 +35,7 @@ def raiseIfFault():
 val_1 = MAX_SPEED / 4 # start at 25% speed
 val_2 = MAX_SPEED / 4 # start at 25% speed
 
-step_size = MAX_SPEED / 30 # 16 speed per step
+step_size = MAX_SPEED / 20 # 24 speed per step
 
 clkLastState_1 = GPIO.input(encoder_clk_1)
 clkLastState_2 = GPIO.input(encoder_clk_2)
