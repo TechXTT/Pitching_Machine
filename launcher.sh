@@ -3,5 +3,5 @@
 
 cd /
 cd /home/marog/Desktop/Pitching_Machine
-python3 controlled_motor_by_encoder.py
+python3 main_control.py
 cd /
