@@ -119,17 +119,7 @@ def run_motors():
             button_pressed = not GPIO.input(button)
             if button_pressed :
                 # Stop the motors slowly.
-                while val_1 > 0 or val_2 > 0:
-                    val_1 = val_1 - step_size
-                    val_2 = val_2 - step_size
-
-                    if val_1 < 0:
-                        val_1 = 0
-                    if val_2 < 0:
-                        val_2 = 0
-                    
-                    motors.setSpeeds(-val_1, val_2)
-                    time.sleep(0.3)
+                stop()
 
             time.sleep(0.01)
 
