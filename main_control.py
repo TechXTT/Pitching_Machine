@@ -2,124 +2,89 @@ import time
 import threading
 from dual_g2_hpmd_rpi import motors, MAX_SPEED
 from RPi import GPIO
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
 
-encoder_clk_1 = 17
-encoder_data_1 = 18
-button = 27
-encoder_clk_2 = 14
-encoder_data_2 = 15
+encoder_pins = [17, 18, 14, 15]
+button_pin = 27
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(encoder_clk_1, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(encoder_data_1, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(encoder_clk_2, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(encoder_data_2, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+for pin in encoder_pins:
+    GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-# Define a custom exception to raise if a fault is detected.
 class DriverFault(Exception):
     def __init__(self, driver_num):
         self.driver_num = driver_num
 
 def raiseIfFault():
-    if motors.motor1.getFault():
-        raise DriverFault(1)
-    if motors.motor2.getFault():
-        raise DriverFault(2)
+    if motors.motor1.getFault() or motors.motor2.getFault():
+        motors.forceStop()
+        raise DriverFault(1 if motors.motor1.getFault() else 2)
 
-val_1 = MAX_SPEED / 4 # start at 25% speed
-val_2 = MAX_SPEED / 4 # start at 25% speed
-
-step_size = MAX_SPEED / 20 # 24 speed per step
-
-clkLastState_1 = GPIO.input(encoder_clk_1)
-clkLastState_2 = GPIO.input(encoder_clk_2)
-button_pressed = False
+val_1 = MAX_SPEED // 4
+val_2 = MAX_SPEED // 4
+step_size = MAX_SPEED // 20
 
 motors.setSpeeds(-val_1, val_2)
 
 @app.route('/get')
-def index():
-    # return json data
-    return {'val_1': val_1, 'val_2': val_2}
+def get_speed():
+    return jsonify({'val_1': val_1, 'val_2': val_2})
 
 @app.route('/set/<int:new_1>/<int:new_2>')
-def set(new_1, new_2):
+def set_speed(new_1, new_2):
     global val_1, val_2
-    val_1 = new_1
-    val_2 = new_2
+    val_1, val_2 = new_1, new_2
     motors.setSpeeds(-val_1, val_2)
-    return {'val_1': val_1, 'val_2': val_2}
+    return jsonify({'val_1': val_1, 'val_2': val_2})
 
 @app.route('/stop')
-def stop():
+def stop_motors():
     global val_1, val_2
     while val_1 > 0 or val_2 > 0:
-        val_1 = val_1 - step_size
-        val_2 = val_2 - step_size
-        if val_1 < 0:
-            val_1 = 0
-        if val_2 < 0:
-            val_2 = 0
-
+        val_1 = max(0, val_1 - step_size)
+        val_2 = max(0, val_2 - step_size)
         motors.setSpeeds(-val_1, val_2)
         time.sleep(0.3)
-
-    return {'val_1': val_1, 'val_2': val_2}
+    return jsonify({'val_1': val_1, 'val_2': val_2})
 
 def run_motors():
-    global val_1, val_2, clkLastState_1, clkLastState_2, button_pressed
+    global val_1, val_2
+    clkLastState = [GPIO.input(encoder_pins[i]) for i in range(2)]
+    button_pressed = False
 
     try:
         while True:
-            clkState_1 = GPIO.input(encoder_clk_1)
-            dtState_1 = GPIO.input(encoder_data_1)
-            
-            clkState_2 = GPIO.input(encoder_clk_2)
-            dtState_2 = GPIO.input(encoder_data_2)
-            
-            if clkState_1 != clkLastState_1:
-                if dtState_1 != clkState_1:
-                    val_1 = val_1 + step_size
-                else:
-                    val_1 = val_1 - step_size
+            clkState = [GPIO.input(encoder_pins[i]) for i in range(2)]
+            dtState = [GPIO.input(encoder_pins[i+2]) for i in range(2)]
 
-                if val_1 >= MAX_SPEED:
-                    val_1 = MAX_SPEED
-                if val_1 <= 0:
-                    val_1 = 0
+            for i in range(2):
+                if clkState[i] != clkLastState[i]:
+                    if dtState[i] != clkState[i]:
+                        val = val_1 if i == 0 else val_2
+                        val = min(MAX_SPEED, val + step_size)
+                    else:
+                        val = val_1 if i == 0 else val_2
+                        val = max(0, val - step_size)
 
-                motors.motor1.setSpeed(-val_1)
-                raiseIfFault()
-                time.sleep(0.002)
-                
-            if clkState_2 != clkLastState_2:
-                if dtState_2 != clkState_2:
-                    val_2 = val_2 + step_size
-                else:
-                    val_2 = val_2 - step_size
+                    if i == 0:
+                        val_1 = val
+                        motors.motor1.setSpeed(-val_1)
+                    else:
+                        val_2 = val
+                        motors.motor2.setSpeed(val_2)
 
-                if val_2 >= MAX_SPEED:
-                    val_2 = MAX_SPEED
-                if val_2 <= 0:
-                    val_2 = 0
+                    raiseIfFault()
+                    time.sleep(0.002)
 
-                motors.motor2.setSpeed(val_2)
-                raiseIfFault()
-                time.sleep(0.002)
-
-
-            clkLastState_1 = clkState_1
-            clkLastState_2 = clkState_2
-            button_pressed = not GPIO.input(button)
-            if button_pressed :
-                # Stop the motors slowly.
-                stop()
+            clkLastState = clkState
+            button_pressed = not GPIO.input(button_pin)
+            if button_pressed:
+                stop_motors()
 
             time.sleep(0.01)
 
